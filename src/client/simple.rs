@@ -139,7 +139,7 @@ impl<S> SimpleClient<S>
     ///
     /// Currently, it panics if the connector returns an error.
     pub fn with_connector<C>(connector: C) -> HttpResult<SimpleClient<S>>
-        where C: HttpConnect<Stream = S>
+        where C: HttpConnect<Stream=S>
     {
         let ClientStream(stream, scheme, host) = try!(connector.connect());
         SimpleClient::with_stream(stream, host, scheme)
@@ -192,6 +192,21 @@ impl<S> SimpleClient<S>
         }
 
         Ok(stream_id)
+    }
+
+    pub fn head(&mut self, method: &[u8], path: &[u8]) -> HttpResult<StreamId> {
+        // Prepares the request stream
+        let stream = self.new_stream(method, path, &[], None);
+        // Starts the request (i.e. sends out the headers)
+        let stream_id = try!(self.conn.start_request(stream, &mut self.receiver));
+        // TODO(mlalic): Remove when `Stream::on_id_assigned` is invoked by the session.
+        self.conn.state.get_stream_mut(stream_id).unwrap().stream_id = Some(stream_id);
+
+        Ok(stream_id)
+    }
+
+    pub fn reset(&mut self, stream_id: StreamId) -> HttpResult<()> {
+        self.conn.send_reset(stream_id, &mut self.receiver)
     }
 
     /// Gets the response for the stream with the given ID. If a valid stream ID

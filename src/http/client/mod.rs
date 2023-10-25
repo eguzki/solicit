@@ -14,7 +14,7 @@ use http::session::{Session, Stream, DefaultStream, DefaultSessionState, Session
 use http::session::Client as ClientMarker;
 use http::priority::SimplePrioritizer;
 
-#[cfg(feature="tls")]
+#[cfg(feature = "tls")]
 pub mod tls;
 
 /// Writes the client preface to the given `io::Write` instance.
@@ -256,6 +256,10 @@ impl<State> ClientConnection<State>
     pub fn send_ping<S: SendFrame>(&mut self, sender: &mut S) -> HttpResult<()> {
         try!(self.conn.sender(sender).send_ping(0));
         Ok(())
+    }
+
+    pub fn send_reset<S: SendFrame>(&mut self, stream_id: StreamId, sender: &mut S) -> HttpResult<()> {
+        self.conn.sender(sender).send_reset(stream_id)
     }
 
     /// Fully handles the next incoming frame provided by the given `ReceiveFrame` instance.
@@ -648,10 +652,10 @@ mod tests {
             session.rst_stream(3, ErrorCode::Cancel, &mut conn).unwrap();
         }
         assert!(state.get_stream_ref(3)
-                     .map(|stream| {
-                         stream.errors.len() == 1 && stream.errors[0] == ErrorCode::Cancel
-                     })
-                     .unwrap());
+            .map(|stream| {
+                stream.errors.len() == 1 && stream.errors[0] == ErrorCode::Cancel
+            })
+            .unwrap());
         assert!(state.get_stream_ref(1).map(|stream| stream.errors.len() == 0).unwrap());
     }
 

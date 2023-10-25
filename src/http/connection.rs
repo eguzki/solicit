@@ -22,8 +22,7 @@ use http::{Header, StreamId, HttpError, HttpResult, HttpScheme, WindowSize,
            ErrorCode, INITIAL_CONNECTION_WINDOW_SIZE};
 use http::priority::DataPrioritizer;
 use http::session::Session;
-use http::frame::{Frame, FrameIR, RawFrame, DataFrame, DataFlag, HeadersFrame, HeadersFlag,
-                  SettingsFrame, RstStreamFrame, PingFrame, GoawayFrame, WindowUpdateFrame};
+use http::frame::{Frame, FrameIR, RawFrame, DataFrame, DataFlag, HeadersFrame, HeadersFlag, SettingsFrame, RstStreamFrame, PingFrame, GoawayFrame, WindowUpdateFrame, pack_header};
 use hpack;
 
 /// An enum representing all frame variants that can be returned by an `HttpConnection` can handle.
@@ -226,6 +225,10 @@ impl<'a, S> HttpConnectionSender<'a, S>
     /// Sends a PING request
     pub fn send_ping(&mut self, bytes: u64) -> HttpResult<()> {
         self.send_frame(PingFrame::with_data(bytes))
+    }
+
+    pub fn send_reset(&mut self, stream_id: StreamId) -> HttpResult<()> {
+        self.send_frame(RstStreamFrame::new(stream_id, ErrorCode::Cancel))
     }
 
     /// A helper function that inserts the frames required to send the given headers onto the
